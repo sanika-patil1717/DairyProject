@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="ISO-8859-1">
+    <title>Role Based Auth</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        .navbar {
+            background-color: #61df88;
+        }
+        .navbar-header h1 {
+            margin: 10px 0;
+        }
+        .anchor {
+            background-color: #d9edf7;
+            border-color: #d9edf7;
+        }
+        .container-custom {
+            padding-top: 80px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .btn-anchor {
+            margin-top: 10px;
+        }
+        .spacing-top {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="#">FARM-CONNECT</a>
+        </div>
+        <ul class="nav navbar-nav navbar-right">
+            <li>
+                <a>
+                    <h4>Hi, Welcome <span th:text="${userDetails.name}"></span></h4>
+                </a>
+            </li>
+            <li>
+                <a th:href="@{/logout}" class="btn anchor">
+                    <i class="fa fa-arrow-circle-o-left"></i>&nbsp;Logout
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container container-custom">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1>Welcome to User Dashboard. Your User ROLE was selected as USER</h1>
+        </div>
+    </div>
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <form th:action="@{/dashboard/updateMilkProduction}" method="post" class="form-horizontal">
+                <input type="hidden" name="userId" th:value="${userDetails.id}" />
+                <div class="form-group">
+                    <label for="milkProduction" class="col-sm-2 control-label">Enter Milk Production (Liters):</label>
+                    <div class="col-sm-10">
+                        <input type="text" id="milkProduction" name="milkProduction" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <button type="submit" class="btn btn-primary btn-anchor">Submit Milk Production</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="container container-custom">
+        <div class="row spacing-top">
+            <div class="col-md-12">
+                <h2>Selected Milk Collector Information</h2>
+                <div th:if="${selectedMilkCollector != null}">
+                    <table class="table table-bordered">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Contact</th>
+                            <th>Location</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td th:text="${selectedMilkCollector.name}"></td>
+                            <td th:text="${selectedMilkCollector.mobileNo}"></td>
+                            <td th:text="${selectedMilkCollector.location}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:if="${selectedMilkCollector == null}">
+                    <p>No milk collector selected.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4 text-center">
+        <div class="col-md-12">
+            <a th:href="@{/displayAllMilkCollectors}" class="btn anchor">
+                <i class="fa fa-arrow-circle-o-left"></i> Check Available Milk Collectors
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4 text-center">
+        <div class="col-md-12">
+            <a th:href="@{/displayAllMilkCollectors/currentMilkCollector(farmerId=${userDetails.id},farmerName=${userDetails.name})}" class="btn anchor">
+                <i class="fa fa-arrow-circle-o-left"></i> Your Milk Collector
+            </a>
+        </div>
+    </div>
+    <div class="row spacing-top">
+        <div class="col-md-12">
+            <h2>Select Payment Plan</h2>
+            <form id="paymentForm" method="post" class="form-horizontal">
+                <input type="hidden" name="userId" th:value="${userDetails.id}" />
+                <div class="form-group">
+                    <label for="planType" class="col-sm-2 control-label">Select Plan Type:</label>
+                    <div class="col-sm-10">
+                        <select id="planType" name="planType" class="form-control">
+                            <option value="ANNUALLY">Annually</option>
+                            <option value="MONTHLY">Monthly</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <button type="button" class="btn btn-primary btn-anchor" id="payButton" onclick="CreateOrderID()">Pay Now</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    var xhttp = new XMLHttpRequest();
+    var RazorpayOrderId;
+
+    function CreateOrderID() {
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                RazorpayOrderId = this.responseText;
+                OpenCheckout();
+            }
+        };
+        xhttp.open("GET", "http://localhost:8080/RZP_Java/OrderCreation", true);
+        xhttp.send();
+    }
+
+    function OpenCheckout() {
+        var options = {
+            "key": "rzp_test_0EBCNVwrFmCs9Y", // Enter the Key ID generated from the Dashboard
+            "amount": "10000", // Amount is in currency subunits. Default currency is INR. Hence, 10000 refers to 100 INR.
+            "currency": "INR",
+            "name": "Acme Corp",
+            "description": "Test Transaction",
+            "image": "https://example.com/your_logo",
+            "order_id": RazorpayOrderId, // This is a sample Order ID. Pass the 'id' obtained in the response of Step 1
+            "callback_url": "http://localhost:8080/RZP_Java/OrderCreation",
+            "prefill": {
+                "name": "Gaurav Kumar",
+                "email": "gaurav.kumar@example.com",
+                "contact": "9999999999"
+            },
+            "notes": {
+                "address": "Razorpay Corporate Office"
+            },
+            "theme": {
+                "color": "#3399cc"
+            }
+        };
+        var rzp1 = new Razorpay(options);
+        rzp1.on('payment.failed', function(response) {
+            alert(response.error.code);
+            alert(response.error.description);
+            alert(response.error.source);
+            alert(response.error.step);
+            alert(response.error.reason);
+            alert(response.error.metadata.order_id);
+            alert(response.error.metadata.payment_id);
+        });
+
+        rzp1.open();
+    }
+</script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+</body>
+</html>
